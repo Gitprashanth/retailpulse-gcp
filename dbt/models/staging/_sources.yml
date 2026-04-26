@@ -1,0 +1,65 @@
+version: 2
+
+sources:
+  - name: bronze
+    database: retailpulse-gcp
+    schema: retailpulse_bronze
+    description: "Raw Bronze layer tables loaded from GCS via load_to_bq.py"
+    tables:
+      - name: raw_orders
+        description: "Raw orders ingested from DummyJSON API"
+        columns:
+          - name: order_id
+            description: "Unique order identifier"
+            tests:
+              - not_null
+              - unique
+          - name: user_id
+            description: "Foreign key to customer"
+            tests:
+              - not_null
+          - name: date
+            description: "Order date string from API"
+          - name: products
+            description: "JSON string array of ordered products"
+          - name: status
+            description: "Order fulfillment status"
+
+      - name: raw_products
+        description: "Raw product catalog ingested from DummyJSON API"
+        columns:
+          - name: product_id
+            description: "Unique product identifier"
+            tests:
+              - not_null
+              - unique
+          - name: title
+            description: "Product name"
+          - name: price
+            description: "Product price in USD"
+          - name: category
+            description: "Product category"
+          - name: description
+            description: "Product description text"
+          - name: image
+            description: "URL to product image"
+
+      - name: raw_customers
+        description: "Raw customer profiles ingested from RandomUser API"
+        columns:
+          - name: customer_id
+            description: "Unique customer identifier"
+            tests:
+              - not_null
+              - unique
+          - name: first_name
+          - name: last_name
+          - name: email
+            tests:
+              - not_null
+          - name: phone
+          - name: gender
+          - name: date_of_birth
+          - name: city
+          - name: country
+          - name: registered_at

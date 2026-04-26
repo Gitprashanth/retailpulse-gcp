@@ -1,7 +1,7 @@
 # RetailPulse — GCP Data Engineering Project
 ## Claude Project Context File
-**Last updated:** 2026-04-08
-**Status:** Phase 2 complete — ingestion scripts done
+**Last updated:** 2026-04-14
+**Status:** Phase 5 complete — Airflow DAG running on Docker
 
 ---
 
@@ -55,20 +55,33 @@ Python Faker → publish_events.py → Pub/Sub → Dataflow (Beam) → BQ Bronze
 | Python 3.11 | Scripting | Ready |
 | GCS | Bronze data lake | Ready |
 | BigQuery | Warehouse | Ready |
-| Cloud Composer / Airflow | Batch orchestration | Not started |
+| Cloud Composer / Airflow | Batch orchestration | Complete (Docker local) |
 | Apache Beam / Dataflow | Streaming | Not started |
-| dbt-bigquery | Transformations | Not started |
+| dbt-bigquery | Transformations | Complete |
 | Great Expectations | Data quality | Not started |
 | Looker Studio | Dashboard | Not started |
 
 ---
 
 ## Files already written
-- `ingestion/extract_orders.py` — calls Fake Store API, uploads orders + products to GCS
+- `ingestion/extract_orders.py` — calls DummyJSON API, uploads orders + products to GCS
 - `ingestion/extract_customers.py` — calls RandomUser API, flattens + uploads to GCS
+- `ingestion/load_to_bq.py` — loads GCS JSON → BigQuery Bronze tables
+- `dbt/dbt_project.yml` — dbt project config, profiles, packages
+- `dbt/macros/generate_schema_name.sql` — prevents schema name doubling in BigQuery
+- `dbt/models/staging/stg_orders.sql` — cleaned, type-cast orders view (Silver)
+- `dbt/models/staging/stg_products.sql` — cleaned, deduplicated products view (Silver)
+- `dbt/models/staging/stg_customers.sql` — cleaned, deduplicated customers view (Silver)
+- `dbt/models/intermediate/int_order_items.sql` — unnests products JSON array into line items
+- `dbt/models/marts/dim_customers.sql` — Gold dimension table with lifecycle stats
+- `dbt/models/marts/dim_products.sql` — Gold dimension table with sales performance
+- `dbt/models/marts/fct_orders.sql` — Gold fact table with aggregated order financials
+- `dbt/models/marts/mart_revenue_by_category.sql` — Gold summary mart by category + month
+- `dags/retailpulse_dag.py` — Airflow DAG orchestrating extract → bronze → dbt run → dbt test
+- `docker-compose.yaml` — Airflow on Docker setup with GCP auth and project mount
 
 ## Files in progress
-- `ingestion/load_to_bq.py` — load GCS JSON → BigQuery Bronze (next step)
+
 
 ---
 
@@ -80,9 +93,15 @@ Python Faker → publish_events.py → Pub/Sub → Dataflow (Beam) → BQ Bronze
 5. Flatten nested JSON at extraction time, not at transformation time
 6. `.env` file for all config — never hardcode project IDs or bucket names
 7. `.gitignore` includes `*.json`, `.env`, `__pycache__`
+8. Switched from Fake Store API to DummyJSON — Fake Store API unreliable
+9. dbt schema names used as-is via custom generate_schema_name macro (prevents BigQuery doubling)
+10. 30 orders have null dates from source API — tracked as dbt WARN, not ERROR
+11. Airflow runs via Docker (not local pip) — avoids SIGSEGV on Apple Silicon
+12. GCP ADC credentials mounted into Docker at /opt/gcloud/adc.json
+13. dbt tasks are echo placeholders pending custom Docker image with dbt-bigquery
+14. BashOperator env must explicitly include GOOGLE_APPLICATION_CREDENTIALS — it replaces not inherits the environment
 
 ---
-
 ## Environment variables (.env)
 
 GCP_PROJECT_ID=retailpulse-gcp
@@ -117,11 +136,12 @@ order_id, customer_id, product_id, amount, timestamp, ingested_at
 |---|---|---|
 | This file | Context | Updated 2026-04-08 |
 | Ingestion chat | extract_orders.py, extract_customers.py | GCS upload verified |
-| BQ loading chat | load_to_bq.py | Not started |
-| dbt chat | Silver + Gold models | Not started |
-| Airflow chat | batch_pipeline.py DAG | Not started |
+| BQ loading chat | load_to_bq.py complete — all 3 Bronze tables verified |
+| dbt chat | Silver + Gold models | All 8 models built, 40 tests run (38 PASS, 2 WARN) |
+| Airflow chat | Plan agreed — local Airflow on Mac, full pipeline DAG (extract → Bronze → dbt run → dbt test) | Not started
 | Streaming chat | Beam pipeline | Not started |
 | Quality & showcase | Great Expectations, Looker, README | Not started |
+| Airflow chat | Docker setup, DAG built, all 5 tasks green | Complete — dbt tasks are placeholders |
 
 ---
 

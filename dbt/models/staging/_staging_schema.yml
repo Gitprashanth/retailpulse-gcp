@@ -1,0 +1,52 @@
+version: 2
+
+models:
+  - name: stg_orders
+    description: "Cleaned and type-cast orders from the Bronze raw_orders table."
+    columns:
+      - name: order_id
+        description: "Unique order identifier (int64)"
+        tests: [not_null, unique]
+      - name: user_id
+        description: "Foreign key to customer"
+        tests: [not_null]
+      - name: order_date
+        description: "Order date parsed to DATE type"
+      - name: status
+        description: "Normalised (lowercase) order status"
+        tests:
+          - accepted_values:
+              values: ['pending', 'processing', 'shipped', 'delivered', 'cancelled', 'returned', 'unknown']
+      - name: products
+        description: "JSON string of ordered product line items"
+        tests: [not_null]
+
+  - name: stg_products
+    description: "Cleaned and deduplicated product catalog from Bronze raw_products."
+    columns:
+      - name: product_id
+        description: "Unique product identifier (int64)"
+        tests: [not_null, unique]
+      - name: title
+        description: "Product name (trimmed)"
+      - name: category
+        description: "Product category (lowercase)"
+        tests: [not_null]
+      - name: price
+        description: "Product price cast to FLOAT64"
+        tests: [not_null]
+
+  - name: stg_customers
+    description: "Cleaned and deduplicated customer profiles from Bronze raw_customers."
+    columns:
+      - name: customer_id
+        description: "Unique customer identifier"
+        tests: [not_null, unique]
+      - name: email
+        description: "Customer email (lowercase)"
+        tests: [not_null, unique]
+      - name: gender
+        description: "Normalised gender (lowercase)"
+        tests:
+          - accepted_values:
+              values: ['male', 'female', 'other']

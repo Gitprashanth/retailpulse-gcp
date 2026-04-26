@@ -3,6 +3,18 @@ __pycache__/
 *.py[codz]
 *$py.class
 
+# macOS system files
+.DS_Store
+
+# Runtime logs
+logs/
+*.log
+
+# dbt generated files (not source code)
+dbt/target/
+dbt/logs/
+dbt/dbt_packages/
+
 # C extensions
 *.so
 

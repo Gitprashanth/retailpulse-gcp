@@ -1,0 +1,10 @@
+google-cloud-bigquery
+google-cloud-storage
+google-cloud-pubsub
+apache-beam[gcp]
+dbt-bigquery
+great-expectations
+requests
+faker
+pandas
+python-dotenv

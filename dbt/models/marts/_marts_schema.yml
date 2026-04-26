@@ -1,0 +1,62 @@
+version: 2
+
+models:
+  - name: dim_customers
+    description: "Gold dimension table. One row per customer, enriched with order lifecycle stats."
+    columns:
+      - name: customer_id
+        tests: [not_null, unique]
+      - name: email
+        tests: [not_null, unique]
+      - name: total_orders
+        description: "Count of distinct orders placed by this customer"
+        tests: [not_null]
+
+  - name: dim_products
+    description: "Gold dimension table. One row per product, enriched with sales performance."
+    columns:
+      - name: product_id
+        tests: [not_null, unique]
+      - name: list_price
+        tests: [not_null]
+      - name: category
+        tests: [not_null]
+
+  - name: fct_orders
+    description: "Gold fact table. One row per order with aggregated financial metrics."
+    columns:
+      - name: order_id
+        tests: [not_null, unique]
+      - name: customer_id
+        tests: [not_null]
+      - name: order_date
+        description: "Null for ~30 orders where source API returned no date"
+        tests:
+          - not_null:
+              config:
+                severity: warn
+      - name: net_order_total
+        description: "Order total after discounts. Null where order_date is null."
+        tests:
+          - not_null:
+              config:
+                severity: warn
+      - name: status_group
+        tests:
+          - accepted_values:
+              values: ['completed', 'failed', 'in_progress']
+
+  - name: mart_revenue_by_category
+    description: >
+      Gold summary mart. Revenue, volume, and order metrics rolled up by
+      product category and month. Powers the Looker Studio dashboard.
+    columns:
+      - name: month_start
+        description: "First day of the month (DATE_TRUNC grain)"
+        tests: [not_null]
+      - name: product_category
+        tests: [not_null]
+      - name: net_revenue
+        tests: [not_null]
+      - name: pct_of_monthly_revenue
+        description: "This category's share of total net revenue for the month (0-100)"

@@ -34,7 +34,11 @@ models:
         tests: [not_null]
       - name: price
         description: "Product price cast to FLOAT64"
-        tests: [not_null]
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:    # NEW — price must be positive
+              arguments: 
+               expression: ">= 0"
 
   - name: stg_customers
     description: "Cleaned and deduplicated customer profiles from Bronze raw_customers."

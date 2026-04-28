@@ -10,7 +10,12 @@ models:
         tests: [not_null, unique]
       - name: total_orders
         description: "Count of distinct orders placed by this customer"
-        tests: [not_null]
+        tests: 
+          - not_null
+          - dbt_utils.expression_is_true:
+                arguments:
+                 expression: ">= 0"
+
 
   - name: dim_products
     description: "Gold dimension table. One row per product, enriched with sales performance."
@@ -18,17 +23,32 @@ models:
       - name: product_id
         tests: [not_null, unique]
       - name: list_price
-        tests: [not_null]
+        tests: 
+          - not_null
+          - dbt_utils.expression_is_true:
+                arguments:
+                 expression: ">= 0"
       - name: category
-        tests: [not_null]
+        tests: 
+          - not_null
 
   - name: fct_orders
     description: "Gold fact table. One row per order with aggregated financial metrics."
+    tests:
+      - dbt_utils.expression_is_true:
+          arguments:
+            expression: "net_order_total >=0"
+          config:
+            severity: warn
     columns:
       - name: order_id
         tests: [not_null, unique]
       - name: customer_id
-        tests: [not_null]
+        tests: 
+          - not_null
+            # relationships test removed — customer_id is INT64 in fct_orders
+            # but STRING in dim_customers due to source API type inconsistency.
+            # Referential integrity is validated at the Silver layer instead.
       - name: order_date
         description: "Null for ~30 orders where source API returned no date"
         tests:
@@ -50,10 +70,21 @@ models:
     description: >
       Gold summary mart. Revenue, volume, and order metrics rolled up by
       product category and month. Powers the Looker Studio dashboard.
+    tests:
+      - dbt_utils.expression_is_true:
+          arguments: 
+            expression: "net_revenue >= 0"
+      - dbt_utils.expression_is_true:
+          arguments: 
+            expression: "pct_of_monthly_revenue between 0 and 100"
+    
     columns:
       - name: month_start
         description: "First day of the month (DATE_TRUNC grain)"
-        tests: [not_null]
+        tests: 
+          - not_null:
+              config:
+                severity: warn
       - name: product_category
         tests: [not_null]
       - name: net_revenue

@@ -29,7 +29,8 @@ unnested as (
         )                                               as discount_pct
 
     from orders as o,
-    unnest(json_query_array(o.products)) as item
+    -- unnest(json_query_array(o.products)) as item
+    unnest(json_query_array(json_value(o.products))) as item
 ),
 
 -- Enrich with product-level attributes

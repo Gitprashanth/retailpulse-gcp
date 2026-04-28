@@ -1,7 +1,7 @@
 # RetailPulse — GCP Data Engineering Project
 ## Claude Project Context File
-**Last updated:** 2026-04-14
-**Status:** Phase 5 complete — Airflow DAG running on Docker
+**Last updated:** 2026-04-26
+**Status:** Phase 6 complete — Streaming pipeline running with Pub/Sub and Apache Beam
 
 ---
 
@@ -56,7 +56,7 @@ Python Faker → publish_events.py → Pub/Sub → Dataflow (Beam) → BQ Bronze
 | GCS | Bronze data lake | Ready |
 | BigQuery | Warehouse | Ready |
 | Cloud Composer / Airflow | Batch orchestration | Complete (Docker local) |
-| Apache Beam / Dataflow | Streaming | Not started |
+| Apache Beam / Dataflow | Streaming | Complete (DirectRunner local) |
 | dbt-bigquery | Transformations | Complete |
 | Great Expectations | Data quality | Not started |
 | Looker Studio | Dashboard | Not started |
@@ -79,6 +79,8 @@ Python Faker → publish_events.py → Pub/Sub → Dataflow (Beam) → BQ Bronze
 - `dbt/models/marts/mart_revenue_by_category.sql` — Gold summary mart by category + month
 - `dags/retailpulse_dag.py` — Airflow DAG orchestrating extract → bronze → dbt run → dbt test
 - `docker-compose.yaml` — Airflow on Docker setup with GCP auth and project mount
+- `streaming/publish_events.py` — Generates fake orders with Faker, publishes to Pub/Sub topic
+- `streaming/beam_pipeline.py` — Reads from Pub/Sub subscription, parses JSON, writes to BigQuery streaming_orders
 
 ## Files in progress
 
@@ -100,6 +102,9 @@ Python Faker → publish_events.py → Pub/Sub → Dataflow (Beam) → BQ Bronze
 12. GCP ADC credentials mounted into Docker at /opt/gcloud/adc.json
 13. dbt tasks are echo placeholders pending custom Docker image with dbt-bigquery
 14. BashOperator env must explicitly include GOOGLE_APPLICATION_CREDENTIALS — it replaces not inherits the environment
+15. Pub/Sub library v2.36.0 uses request= dict syntax instead of positional data= argument
+16. Beam DirectRunner used for local development — same code works on Dataflow with runner flag change
+17. streaming_orders Bronze table auto-created by Beam using CREATE_IF_NEEDED disposition
 
 ---
 ## Environment variables (.env)
@@ -139,7 +144,7 @@ order_id, customer_id, product_id, amount, timestamp, ingested_at
 | BQ loading chat | load_to_bq.py complete — all 3 Bronze tables verified |
 | dbt chat | Silver + Gold models | All 8 models built, 40 tests run (38 PASS, 2 WARN) |
 | Airflow chat | Plan agreed — local Airflow on Mac, full pipeline DAG (extract → Bronze → dbt run → dbt test) | Not started
-| Streaming chat | Beam pipeline | Not started |
+| Streaming chat | Pub/Sub publisher + Beam pipeline | Complete — rows verified in BigQuery |
 | Quality & showcase | Great Expectations, Looker, README | Not started |
 | Airflow chat | Docker setup, DAG built, all 5 tasks green | Complete — dbt tasks are placeholders |
 
